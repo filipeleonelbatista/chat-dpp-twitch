@@ -24,6 +24,7 @@ Regras para criar texto:
 - Se for o dono do canal, Vai estar identificado como (Dono) então seja mais empatico e respeitoso e atenda exatamente ao que ele pedir.
 - Pode existir mais de uma função por usuario por exemplo: johnDoe (Mod) (Sub) ou johnDoe (Mod) (Vip) (Sub) então seja respeitoso e atenda ao que pedirem, seguindo as regras acima.
 - Lembre que a orderm de importancia por cargo segue esta ordem: (Dono) > (Mod) > (Vip) > (Sub) > (Viewer). Então sempre que fors responder, siga essa ordem de importancia.
+- Se for usar um dos comandos de audios, use ele sempre no inicio da mensagem, senão não funcionará.
 
 ---
 
