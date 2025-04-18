@@ -49,6 +49,14 @@ client.on('message', async (
     self: boolean
 ) => {
     if (self) return;
+
+    const botUsername = process.env.TWITCH_USERNAME?.toLowerCase() ?? 'chatdpp';
+    const messageContent = message.toLowerCase();
+
+    if (!messageContent.includes(`@${botUsername}`)) {
+        return;
+    }
+
     const name = channel.slice(1);
     const persona = channelPersonas[name];
     if (!persona) return;
@@ -57,9 +65,21 @@ client.on('message', async (
         conversationHistory[name] = [{ role: 'system', content: persona.systemPrompt }];
     }
 
+    const isSubscriber = tags.subscriber;
+    const isMod = tags.mod;
+    const isBroadcaster = tags.badges?.broadcaster === '1';
+    const isVIP = tags.badges?.vip === '1';
+
+    let userStatus = [];
+    if (isBroadcaster) userStatus.push('(Dono)');
+    if (isMod) userStatus.push('(Mod)');
+    if (isVIP) userStatus.push('(VIP)');
+    if (isSubscriber) userStatus.push('(Sub)');
+    if (userStatus.length === 0) userStatus.push('(Viewer)');
+
     conversationHistory[name].push({
         role: 'user',
-        content: `${tags['display-name'] || tags.username}: ${message}`
+        content: `${tags['display-name'] || tags.username} ${userStatus.join(' ')}: ${message}`
     });
 
     const systemMessage = conversationHistory[name][0];
