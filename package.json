@@ -4,7 +4,7 @@
   "main": "server.ts",
   "license": "MIT",
   "scripts": {
-    "dev": "ts-node src/server.ts",
+    "dev": "nodemon src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js"
   },
@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/node": "^22.14.1",
     "@types/tmi.js": "^1.8.6",
+    "nodemon": "^3.1.9",
     "ts-node": "^10.9.2"
   }
 }
