@@ -25,7 +25,7 @@ interface ConversationHistory {
 }
 
 const client: tmi.Client = new tmi.Client({
-    options: { debug: false },
+    options: { debug: true },
     identity: {
         username: process.env.TWITCH_USERNAME ?? '',
         password: `oauth:${process.env.TWITCH_ACCESS_TOKEN ?? ''}`
@@ -40,9 +40,20 @@ const channelPersonas: ChannelPersonas = {
         Essas são as informações sobre o apresentador: ${COLONOGAMER_CONTEXT}
         `,
     },
+    hayashii: {
+        systemPrompt: `
+        Você é o assistente oficial do canal Colonogamer na Twitch, use o estilo e informações do apresentador. 
+        Essas são as informações sobre o apresentador: ${COLONOGAMER_CONTEXT}
+        `,
+    },
 };
 
 const conversationHistory: ConversationHistory = {};
+
+// <<< ADICIONADO
+function isValidResponse(text: string): boolean {
+    return text.trim().length <= Number(process.env.MAX_CHARS_PER_MESSAGE || 75);
+}
 
 function scheduleNightlyMessage() {
     const checkTime = () => {
@@ -50,21 +61,17 @@ function scheduleNightlyMessage() {
         const hour = now.getHours();
         const minute = now.getMinutes();
 
-        // Verifica se é 22:00
         if (hour === 22 && minute === 0) {
             const channels = client.getChannels();
             channels.forEach(channel => {
-                const message = "!22h";
-                client.say(channel, message).catch(console.error);
+                client.say(channel, "!22h").catch(console.error);
             });
         }
 
-        // Verifica se é 22:22
         if (hour === 22 && minute === 22) {
             const channels = client.getChannels();
             channels.forEach(channel => {
-                const message = "!2222";
-                client.say(channel, message).catch(console.error);
+                client.say(channel, "!2222").catch(console.error);
             });
         }
     };
@@ -75,7 +82,6 @@ function scheduleNightlyMessage() {
 client.on('connected', () => {
     scheduleNightlyMessage();
 });
-
 
 client.on('message', async (
     channel: string,
@@ -93,7 +99,6 @@ client.on('message', async (
     }
 
     const userId = tags['user-id'] || '';
-
 
     if (isUserSpamming(userId)) {
         return;
@@ -130,23 +135,41 @@ client.on('message', async (
         second: '2-digit'
     });
 
-    conversationHistory[name].push({
-        role: 'user',
-        content: `[${timestamp}] ${tags['display-name'] || tags.username} ${userStatus.join(' ')}: ${message}`
-    });
-
-    saveLog(name, `[${timestamp}] ${tags['display-name'] || tags.username} ${userStatus.join(' ')}: ${message}`);
+    const userMessage = `[${timestamp}] ${tags['display-name'] || tags.username} ${userStatus.join(' ')}: ${message}`;
+    conversationHistory[name].push({ role: 'user', content: userMessage });
+    saveLog(name, userMessage);
 
     const systemMessage = conversationHistory[name][0];
     const recentMessages = conversationHistory[name].slice(-19);
     const recent = [systemMessage, ...recentMessages];
 
     try {
-        const res = await generateText({
+        let res = await generateText({
             model: google('gemini-1.5-flash'),
             messages: recent,
         });
-        const reply = res.text;
+
+        let reply = res.text;
+
+        // <<< ADICIONADO: reiteração
+        if (!isValidResponse(reply)) {
+            conversationHistory[name].push({
+                role: 'user',
+                content: `Sua resposta ultrapassou ${process.env.MAX_CHARS_PER_MESSAGE} caracteres. Reescreva com até ${process.env.MAX_CHARS_PER_MESSAGE}.`
+            });
+
+            const retryRes = await generateText({
+                model: google('gemini-1.5-flash'),
+                messages: [systemMessage, ...conversationHistory[name].slice(-19)],
+            });
+
+            reply = retryRes.text;
+        }
+
+        // <<< ADICIONADO: corte final caso ultrapasse
+        if (!isValidResponse(reply)) {
+            reply = reply.slice(0, Number(process.env.MAX_CHARS_PER_MESSAGE || 75)).replace(/\s+\S*$/, '') + '…';
+        }
 
         const timestamp2 = new Date().toLocaleString('pt-BR', {
             timeZone: 'America/Sao_Paulo',
@@ -160,7 +183,6 @@ client.on('message', async (
         });
 
         saveLog(name, `[${timestamp2}] @${botUsername}: ${reply}`);
-
         conversationHistory[name].push({ role: 'assistant', content: reply });
 
         await client.say(channel, reply);
@@ -173,10 +195,8 @@ client.connect().catch((error: Error) => console.error('Connection error:', erro
 
 console.log('Bot is running...');
 
-
 const app = express();
 const PORT = process.env.PORT || 3000;
-
 
 app.get('/', (req, res) => {
     const status = {
