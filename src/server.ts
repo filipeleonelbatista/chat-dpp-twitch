@@ -55,33 +55,33 @@ function isValidResponse(text: string): boolean {
     return text.trim().length <= Number(process.env.MAX_CHARS_PER_MESSAGE || 75);
 }
 
-function scheduleNightlyMessage() {
-    const checkTime = () => {
-        const now = new Date();
-        const hour = now.getHours();
-        const minute = now.getMinutes();
+// function scheduleNightlyMessage() {
+//     const checkTime = () => {
+//         const now = new Date();
+//         const hour = now.getHours();
+//         const minute = now.getMinutes();
 
-        if (hour === 22 && minute === 0) {
-            const channels = client.getChannels();
-            channels.forEach(channel => {
-                client.say(channel, "!22h").catch(console.error);
-            });
-        }
+//         if (hour === 22 && minute === 0) {
+//             const channels = client.getChannels();
+//             channels.forEach(channel => {
+//                 client.say(channel, "!22h").catch(console.error);
+//             });
+//         }
 
-        if (hour === 22 && minute === 22) {
-            const channels = client.getChannels();
-            channels.forEach(channel => {
-                client.say(channel, "!2222").catch(console.error);
-            });
-        }
-    };
+//         if (hour === 22 && minute === 22) {
+//             const channels = client.getChannels();
+//             channels.forEach(channel => {
+//                 client.say(channel, "!2222").catch(console.error);
+//             });
+//         }
+//     };
 
-    setInterval(checkTime, 60000);
-}
+//     setInterval(checkTime, 60000);
+// }
 
-client.on('connected', () => {
-    scheduleNightlyMessage();
-});
+// client.on('connected', () => {
+//     scheduleNightlyMessage();
+// });
 
 client.on('message', async (
     channel: string,
@@ -135,7 +135,9 @@ client.on('message', async (
         second: '2-digit'
     });
 
-    const userMessage = `[${timestamp}] ${tags['display-name'] || tags.username} ${userStatus.join(' ')}: ${message}`;
+    // com as roles
+    // const userMessage = `[${timestamp}] ${tags['display-name'] || tags.username} ${userStatus.join(' ')}: ${message}`;
+    const userMessage = `[${timestamp}] ${tags['display-name'] || tags.username}: ${message}`;
     conversationHistory[name].push({ role: 'user', content: userMessage });
     saveLog(name, userMessage);
 
